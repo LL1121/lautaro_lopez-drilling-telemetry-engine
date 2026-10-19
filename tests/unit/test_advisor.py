@@ -12,9 +12,13 @@ import pytest
 from pydantic import ValidationError
 
 from src.advisor.llm_diagnostics import (
+    AnthropicProvider,
     DeterministicMockLLMProvider,
     DrillingAdvisor,
+    GroqProvider,
     LLMRequest,
+    OpenAIProvider,
+    build_default_advisor,
 )
 from src.advisor.prompts.drilling_sop import (
     build_system_prompt,
@@ -413,5 +417,84 @@ def test_optional_providers_empty_content(monkeypatch: pytest.MonkeyPatch) -> No
         asyncio.run(OpenAIProvider().generate(request))
     with pytest.raises(RuntimeError, match="empty"):
         asyncio.run(AnthropicProvider().generate(request))
+
+
+def test_default_advisor_is_mock_without_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    advisor = build_default_advisor()
+    assert isinstance(advisor.provider, DeterministicMockLLMProvider)
+
+
+@pytest.mark.parametrize(
+    ("provider_name", "key_env"),
+    [
+        ("openai", "OPENAI_API_KEY"),
+        ("groq", "GROQ_API_KEY"),
+        ("anthropic", "ANTHROPIC_API_KEY"),
+    ],
+)
+def test_default_advisor_degrades_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+    provider_name: str,
+    key_env: str,
+) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", provider_name)
+    monkeypatch.delenv(key_env, raising=False)
+    advisor = build_default_advisor()
+    assert isinstance(advisor.provider, DeterministicMockLLMProvider)
+
+
+def test_default_advisor_degrades_when_sdk_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "present-but-not-a-live-secret")
+    monkeypatch.setattr(
+        "src.advisor.llm_diagnostics.importlib.util.find_spec",
+        lambda _name: None,
+    )
+    advisor = build_default_advisor()
+    assert isinstance(advisor.provider, DeterministicMockLLMProvider)
+
+
+def test_default_advisor_unknown_provider_uses_mock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "not-a-provider")
+    advisor = build_default_advisor()
+    assert isinstance(advisor.provider, DeterministicMockLLMProvider)
+
+
+def test_default_advisor_selects_configured_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "present-but-not-a-live-secret")
+    monkeypatch.setenv("GROQ_MODEL", "llama-test")
+    monkeypatch.setattr(
+        "src.advisor.llm_diagnostics.importlib.util.find_spec",
+        lambda name: object() if name == "groq" else None,
+    )
+    advisor = build_default_advisor()
+    assert isinstance(advisor.provider, GroqProvider)
+    assert advisor.provider.model == "llama-test"
+
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "present-but-not-a-live-secret")
+    monkeypatch.setattr(
+        "src.advisor.llm_diagnostics.importlib.util.find_spec",
+        lambda name: object() if name == "openai" else None,
+    )
+    openai_advisor = build_default_advisor()
+    assert isinstance(openai_advisor.provider, OpenAIProvider)
+
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "present-but-not-a-live-secret")
+    monkeypatch.setattr(
+        "src.advisor.llm_diagnostics.importlib.util.find_spec",
+        lambda name: object() if name == "anthropic" else None,
+    )
+    anthropic_advisor = build_default_advisor()
+    assert isinstance(anthropic_advisor.provider, AnthropicProvider)
 
 

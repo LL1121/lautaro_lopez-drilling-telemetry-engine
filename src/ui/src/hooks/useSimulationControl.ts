@@ -4,8 +4,19 @@ import { useCallback, useState } from "react";
 
 import type { OrchestratorStatus, ScenarioName } from "@/types/telemetry";
 
-const DEFAULT_API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+/**
+ * Base del API.
+ * - sin variable: uvicorn local (`http://localhost:8000`)
+ * - cadena vacía: mismo origen (producción detrás de Caddy, paths `/api/...`)
+ */
+export function resolveApiBase(configured: string | undefined): string {
+  if (configured === undefined) {
+    return "http://localhost:8000";
+  }
+  return configured.replace(/\/$/, "");
+}
+
+const DEFAULT_API_BASE = resolveApiBase(process.env.NEXT_PUBLIC_API_BASE);
 
 export interface SimulationControlState {
   status: OrchestratorStatus | null;

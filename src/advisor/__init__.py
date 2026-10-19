@@ -7,6 +7,7 @@ from src.advisor.llm_diagnostics import (
     GroqProvider,
     LLMRequest,
     OpenAIProvider,
+    build_default_advisor,
 )
 from src.advisor.schemas import (
     SAFE_RPM_RANGE,
@@ -26,4 +27,5 @@ __all__ = [
     "GroqProvider",
     "LLMRequest",
     "OpenAIProvider",
+    "build_default_advisor",
 ]

@@ -132,5 +132,5 @@ Redis está en compose y dependencias (`pyproject.toml`) como **preparación**; 
 
 - [`SPEC.md`](../../SPEC.md) — RF-10, NG-09.
 - [`TimeSyncBuffer`](../../src/pipeline/buffer/time_sync_buffer.py).
-- [`docker-compose.yml`](../../docker-compose.yml) — cuando se mergee tooling infra Sprint 1.
+- [`docker-compose.yml`](../../docker-compose.yml) — API + UI estática. Sin servicio Redis ni SQL; el buffer activo sigue in-memory.
 - [`C4-contenedores.md`](../arquitectura/C4-contenedores.md).

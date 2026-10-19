@@ -18,8 +18,8 @@ info:
 servers:
   - url: http://localhost:8000
     description: FastAPI local (Sprint 1)
-  - url: https://api.drilling-telemetry.example
-    description: Despliegue objetivo PP3 (placeholder)
+  - url: https://drilling.lyntrix.com.ar
+    description: Producción Lyntrix (mismo origen; Caddy enruta /api y /ws)
 
 tags:
   - name: telemetry-ws
@@ -105,6 +105,48 @@ paths:
       responses:
         "200":
           description: Simulación detenida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestratorStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/health:
+    get:
+      tags: [simulation]
+      operationId: getHealth
+      summary: Liveness del proceso API
+      description: |
+        Healthcheck del contenedor. No consulta el estado de la simulación
+        ni requiere autenticación. Usado por Docker, no por la UI.
+      security: []
+      responses:
+        "200":
+          description: Proceso aceptando HTTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/simulation/status:
+    get:
+      tags: [simulation]
+      operationId: getSimulationStatus
+      summary: Estado del orquestador de simulación
+      description: |
+        Lectura del estado operativo (running, preset, sim_time_s, mwd_drops).
+        La UI lo consulta al refrescar Simulation Control. RF-UI-01.
+      security: []
+      responses:
+        "200":
+          description: Estado actual
           content:
             application/json:
               schema:
@@ -247,6 +289,15 @@ components:
       properties:
         preset:
           $ref: "#/components/schemas/ScenarioName"
+
+    HealthStatus:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
 
     OrchestratorStatus:
       type: object
