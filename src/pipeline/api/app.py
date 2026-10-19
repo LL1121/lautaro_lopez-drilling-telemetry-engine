@@ -9,14 +9,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.advisor.llm_diagnostics import (
-    DeterministicMockLLMProvider,
     DrillingAdvisor,
+    build_default_advisor,
 )
 from src.pipeline.api.advisor_store import AdvisorHistoryStore
 from src.pipeline.api.connection_manager import ConnectionManager
 from src.pipeline.api.routers.advisor import router as advisor_router
 from src.pipeline.api.routers.simulation import router as simulation_router
 from src.pipeline.api.routers.telemetry_ws import router as telemetry_ws_router
+from src.pipeline.api.schemas.requests import HealthStatusDTO
 from src.pipeline.orchestration.simulation_orchestrator import (
     SimulationOrchestrator,
 )
@@ -64,7 +65,8 @@ def create_app(
     connections : ConnectionManager or None
         Gestor de WebSockets inyectable.
     advisor : DrillingAdvisor or None
-        Advisor LLM inyectable (default: mock determinista).
+        Advisor LLM inyectable. Si es ``None``, :func:`build_default_advisor`
+        elige proveedor por entorno y cae al mock determinista sin API key.
     advisor_store : AdvisorHistoryStore or None
         Historial de recomendaciones inyectable.
 
@@ -74,11 +76,7 @@ def create_app(
         App con lifespan, REST y WebSocket.
     """
     store = advisor_store if advisor_store is not None else AdvisorHistoryStore()
-    adv = (
-        advisor
-        if advisor is not None
-        else DrillingAdvisor(provider=DeterministicMockLLMProvider())
-    )
+    adv = advisor if advisor is not None else build_default_advisor()
     mgr = connections if connections is not None else ConnectionManager()
     if orchestrator is not None:
         orch = orchestrator
@@ -101,6 +99,12 @@ def create_app(
     app.state.connections = mgr
     app.state.advisor = adv
     app.state.advisor_store = store
+
+    @app.get("/api/v1/health", response_model=HealthStatusDTO)
+    async def health() -> HealthStatusDTO:
+        """Liveness para el healthcheck del contenedor (sin estado de simulación)."""
+        return HealthStatusDTO(status="ok")
+
     app.include_router(simulation_router)
     app.include_router(telemetry_ws_router)
     app.include_router(advisor_router)

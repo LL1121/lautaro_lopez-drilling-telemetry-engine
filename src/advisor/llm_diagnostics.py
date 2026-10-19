@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import json
 import logging
 import os
@@ -330,10 +331,72 @@ class DrillingAdvisor:
         return recommendation
 
 
+_LLM_PROVIDER_MODULES: dict[str, str] = {
+    "openai": "openai",
+    "groq": "groq",
+    "anthropic": "anthropic",
+}
+
+_LLM_PROVIDER_KEY_ENV: dict[str, str] = {
+    "openai": "OPENAI_API_KEY",
+    "groq": "GROQ_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+}
+
+
+def build_default_advisor() -> DrillingAdvisor:
+    """Selecciona el proveedor LLM desde el entorno.
+
+    ``LLM_PROVIDER`` acepta ``mock`` (default), ``openai``, ``groq`` o
+    ``anthropic``. Si el nombre es desconocido, falta la API key o el SDK
+    no está instalado, el advisor usa el mock determinista y la API sigue
+    en servicio (SOP fijo, sin red).
+    """
+    provider_name = os.environ.get("LLM_PROVIDER", "mock").strip().lower()
+    if provider_name in {"", "mock", "deterministic"}:
+        return DrillingAdvisor(provider=DeterministicMockLLMProvider())
+
+    module_name = _LLM_PROVIDER_MODULES.get(provider_name)
+    key_env = _LLM_PROVIDER_KEY_ENV.get(provider_name)
+    if module_name is None or key_env is None:
+        logger.warning(
+            "unknown LLM_PROVIDER=%s; using deterministic mock",
+            provider_name,
+        )
+        return DrillingAdvisor(provider=DeterministicMockLLMProvider())
+
+    api_key = os.environ.get(key_env, "").strip()
+    if not api_key:
+        logger.warning(
+            "LLM_PROVIDER=%s but %s is unset; using deterministic mock",
+            provider_name,
+            key_env,
+        )
+        return DrillingAdvisor(provider=DeterministicMockLLMProvider())
+
+    if importlib.util.find_spec(module_name) is None:
+        logger.warning(
+            "LLM_PROVIDER=%s but package %s is not installed; using deterministic mock",
+            provider_name,
+            module_name,
+        )
+        return DrillingAdvisor(provider=DeterministicMockLLMProvider())
+
+    if provider_name == "openai":
+        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        return DrillingAdvisor(provider=OpenAIProvider(model=model))
+    if provider_name == "groq":
+        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        return DrillingAdvisor(provider=GroqProvider(model=model))
+    model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
+    return DrillingAdvisor(provider=AnthropicProvider(model=model))
+
+
 __all__ = [
     "AnthropicProvider",
     "DeterministicMockLLMProvider",
     "DrillingAdvisor",
+    "build_default_advisor",
     "GroqProvider",
     "LLMProviderProtocol",
     "LLMRequest",

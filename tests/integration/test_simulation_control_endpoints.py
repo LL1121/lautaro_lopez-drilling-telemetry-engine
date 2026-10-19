@@ -57,6 +57,13 @@ def test_set_preset() -> None:
         assert r.json()["preset"] == "transient_choke"
 
 
+def test_health_is_ok() -> None:
+    with _client() as client:
+        response = client.get("/api/v1/health")
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+
 def test_invalid_preset_returns_422() -> None:
     with _client() as client:
         r = client.post(

@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useTelemetryStream } from "@/hooks/useTelemetryStream";
+import {
+  resolveWebSocketUrl,
+  useTelemetryStream,
+} from "@/hooks/useTelemetryStream";
+import { resolveApiBase } from "@/hooks/useSimulationControl";
 
 type Handler = ((ev: MessageEvent<string>) => void) | null;
 
@@ -30,6 +34,32 @@ class MockWebSocket {
     this.onmessage?.({ data } as MessageEvent<string>);
   }
 }
+
+describe("same-origin endpoints", () => {
+  it("keeps absolute API and WebSocket URLs for local dev", () => {
+    expect(resolveApiBase(undefined)).toBe("http://localhost:8000");
+    expect(resolveApiBase("http://localhost:8000/")).toBe("http://localhost:8000");
+    expect(resolveWebSocketUrl("ws://localhost:8000/ws/telemetry")).toBe(
+      "ws://localhost:8000/ws/telemetry",
+    );
+  });
+
+  it("uses relative /api and wss on the page origin in production", () => {
+    expect(resolveApiBase("")).toBe("");
+    expect(
+      resolveWebSocketUrl("/ws/telemetry", {
+        protocol: "https:",
+        host: "drilling.lyntrix.com.ar",
+      }),
+    ).toBe("wss://drilling.lyntrix.com.ar/ws/telemetry");
+    expect(
+      resolveWebSocketUrl("/ws/telemetry", {
+        protocol: "http:",
+        host: "127.0.0.1:8080",
+      }),
+    ).toBe("ws://127.0.0.1:8080/ws/telemetry");
+  });
+});
 
 describe("useTelemetryStream", () => {
   const OriginalWS = globalThis.WebSocket;

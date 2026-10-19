@@ -76,7 +76,7 @@ flowchart TB
 
 | Artefacto | Sprint 1 | Referencia |
 |-----------|----------|------------|
-| `docker-compose.yml` | `api` + `redis` planificado (RF-10) | ADR-003 |
+| `docker-compose.yml` | `drilling_backend` + `drilling_frontend` en `proxy_net` (sin Redis ni SQL) | [`DEPLOY.md`](../../DEPLOY.md) · ADR-003 |
 | Buffer activo | `TimeSyncBuffer` in-memory | NG implícito RF-10 diferido |
 | Persistencia histórica | Non-Goal NG-09 | Sin SQL en Sprint 1 |
 

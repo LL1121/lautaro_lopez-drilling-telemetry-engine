@@ -24,6 +24,36 @@ export interface TelemetryStreamState {
 const DEFAULT_WS_URL =
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/ws/telemetry";
 
+export interface WebSocketLocation {
+  protocol: string;
+  host: string;
+}
+
+/**
+ * Resuelve la URL del WebSocket.
+ * URLs `ws://` / `wss://` se usan tal cual (desarrollo).
+ * Un path relativo (`/ws/telemetry`) usa el origen de la página (`https` → `wss`).
+ */
+export function resolveWebSocketUrl(
+  configured: string,
+  location?: WebSocketLocation,
+): string {
+  if (configured.startsWith("ws://") || configured.startsWith("wss://")) {
+    return configured;
+  }
+  const loc =
+    location ??
+    (typeof window !== "undefined"
+      ? { protocol: window.location.protocol, host: window.location.host }
+      : undefined);
+  if (loc === undefined) {
+    return configured;
+  }
+  const protocol = loc.protocol === "https:" ? "wss:" : "ws:";
+  const path = configured.startsWith("/") ? configured : `/${configured}`;
+  return `${protocol}//${loc.host}${path}`;
+}
+
 const WIDGET_MIN_INTERVAL_MS = 33;
 const MAX_RECOMMENDATIONS = 20;
 const BACKOFF_CAP_MS = 10_000;
@@ -62,7 +92,7 @@ export function useTelemetryStream(url: string = DEFAULT_WS_URL): TelemetryStrea
 
     const connect = () => {
       setConnectionStatus("connecting");
-      socket = new WebSocket(url);
+      socket = new WebSocket(resolveWebSocketUrl(url));
 
       socket.onopen = () => {
         backoffMs.current = 500;

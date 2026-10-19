@@ -4,7 +4,7 @@
 **Repositorio:** `IES9018/lautaro_lopez-drilling-telemetry-engine`  
 **Asignatura:** Práctica Profesionalizante III (PP3) · IES 9-018 · Ciclo 2026  
 **Sprint 1:** 24 ago – 18 sep 2026  
-**Versión del documento:** 6.2.1  
+**Versión del documento:** 6.2.2  
 **Estado:** **Congelado para defensa ADI** — baseline PP3 Sprint 1 + entregables TP1–TP6 (+ ronda tests + UI 3D realista/i18n)
 
 Este documento es la **Single Source of Truth** técnica. Cualquier cambio de modelo, contrato o arquitectura debe actualizarse aquí antes o en el mismo PR que el código.
@@ -187,7 +187,8 @@ Resumen declarativo. Schemas JSON formales: **sección 4** y `docs/contratos/`. 
 | Broadcast gemelo digital | `broadcast.state.v1` | **`TelemetryStreamBroadcast`** (+ `UkfState`) | ~60 FPS WS | `timestamp`, `frame_id`, `ukf_state`, `torsional_deformation_rad[]`, `ssi`, `alert_level` |
 | Envelope WS telemetría | `telemetry_frame` | **`WsTelemetryEnvelope`** (`type` + `data`) | push servidor | `data` → `TelemetryStreamBroadcast` |
 | Recomendación Advisor | `advisor.recommendation.v1` | **`AdvisorRecommendationRecord`** (+ `AdvisorRecommendation`, `AdvisorIncidentSnapshot`) | evento SSI crítico | `recommendation`, `triggered_at`, `snapshot` |
-| Control simulación | — | **`StartSimulationRequest`**, **`SetPresetRequest`**, **`OrchestratorStatus`** | REST | `preset`, `running`, `sim_time_s`, `mwd_drops` |
+| Control simulación | — | **`StartSimulationRequest`**, **`SetPresetRequest`**, **`OrchestratorStatus`** | REST `POST /start`, `POST /stop`, `POST /preset`, `GET /status` | `preset`, `running`, `sim_time_s`, `mwd_drops` |
+| Liveness API | — | **`HealthStatus`** | `GET /api/v1/health` | `status=ok` (healthcheck; no es estado de simulación) |
 
 **Reglas de contrato:**
 
@@ -831,6 +832,7 @@ Para entregables posteriores del sprint (fuera de este documento como “hechos�
 | 6.1.0 | 2026-09-08 | Pirámide de testing §5.2: security + Playwright E2E; Hypothesis property materializados; A-008 en auditoría. |
 | 6.2.0 | 2026-09-08 | UI gemelo: malla industrial (Top Drive/BHA/PDC), WellboreEnv, i18n ES/EN, rotación continua ω·Δt, iluminación omnidireccional; A-009/A-010. |
 | 6.2.1 | 2026-09-15 | Feedback TP6 (#18): §5.3 #4 aclara PSD numérica (ε=1e-8) vs PD estricta; JS budget RNF-03 documentado non-blocking. |
+| 6.2.2 | 2026-10-19 | Despliegue Lyntrix: `GET /api/v1/health`, `GET /api/v1/simulation/status` en el contrato OpenAPI, UI mismo origen (`/api`, `wss`). Sin SQL (ARCH-03). |
 
 ---
 
@@ -848,4 +850,4 @@ Para entregables posteriores del sprint (fuera de este documento como “hechos�
 
 ---
 
-*Fin de SPEC.md v6.2.1 — Congelado para defensa ADI · Release v0.1.0 · feedback TP6 #18*
+*Fin de SPEC.md v6.2.2 — Congelado para defensa ADI · Release v0.1.0 · despliegue Lyntrix*

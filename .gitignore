@@ -83,6 +83,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# --- Deploy runtime (bind mount; no SQL) ---
+/data/
+
 # --- Redis / local runtime ---
 dump.rdb
 *.rdb

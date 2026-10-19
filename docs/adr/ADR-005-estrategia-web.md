@@ -110,6 +110,7 @@ En la taxonomía ADI: **no es SPA pura** (hay SSR del shell), **no es MPA** (una
 
 - “Híbrido” exige disciplina: no importar Three en Server Components.
 - Auth JWT declarada en OpenAPI pero no enforced en Sprint 1 (NG-08) — threat model cubre gap.
+- El contrato incluye `GET /api/v1/simulation/status` (ya consumido por la UI) y `GET /api/v1/health` (liveness del contenedor). La entrega de producción pre-renderiza el shell (`output: export`) y lo sirve estático; WebGL y WebSocket siguen en el cliente (ADR-002, build estático).
 - Segunda pantalla (alerta crítica) es énfasis UX, no ruta MPA separada.
 
 ---

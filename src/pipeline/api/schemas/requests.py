@@ -37,6 +37,20 @@ class SetPresetRequestDTO(BaseModel):
     preset: ScenarioLiteral
 
 
+class HealthStatusDTO(BaseModel):
+    """Liveness del proceso API.
+
+    Attributes
+    ----------
+    status : Literal["ok"]
+        Siempre ``ok`` cuando el proceso acepta HTTP.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: Literal["ok"]
+
+
 class OrchestratorStatusDTO(BaseModel):
     """Estado operativo del orquestador de simulación.
 
